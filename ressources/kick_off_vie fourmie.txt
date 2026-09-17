@@ -1,0 +1,30 @@
+modélisation
+adjacence 
+matrice d'adjacente binaire (true/false)
+Arbre binaire (théorie des graphs)
+Arbre de décision binaire.
+
+Arbre: non orienté, acyclique, deux fils max
+
+Arbre n-aires (généralisation des arbres binaires)
+
+Application à l'IA 
+
+
+Théorie des graphs:
+objets et relations
+orientés et non-orientés, pondéré et non pondéré (distances, coût, ect..)
+Cherches les différents types de graphs
+
+Liste adjacente:
+relation (0 ou 1) x poids
+
+aussi :
+matrice à degrés 
+matrice laplacienne
+
+BFS et DFS
+
+Dijkstra
+
+liste chainée
