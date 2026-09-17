@@ -20,23 +20,28 @@ class Fourmiliere:
         self.adjacence[a].add(b)
         self.adjacence[b].add(a)
 
-    def calculer_distances(self):
-        distances = {self.dortoir: 0}
-        a_visiter = [self.dortoir]
+    def trouver_chemin(self):
+        a_visiter = [[self.vestibule]] 
+        visites = {self.vestibule}
         
         while a_visiter:
-            salle = a_visiter.pop(0)
-            for voisin in self.adjacence.get(salle, []):
-                if voisin not in distances:
-                    distances[voisin] = distances[salle] + 1
-                    a_visiter.append(voisin)
+            chemin = a_visiter.pop(0)
+            salle_actuelle = chemin[-1]
+            
+            if salle_actuelle == self.dortoir:
+                return chemin
+                
+            for voisin in self.adjacence.get(salle_actuelle, []):
+                if voisin not in visites:
+                    visites.add(voisin)
+                    a_visiter.append(chemin + [voisin])
                     
-        return distances if self.vestibule in distances else None
+        return None
 
     @classmethod 
-    def depuis_fichier(cls, chemin):
+    def depuis_fichier(cls, chemin_fichier):
         colonie = cls()
-        with open(chemin, encoding="utf-8") as fichier:
+        with open(chemin_fichier, encoding="utf-8") as fichier:
             for ligne in (l.strip() for l in fichier if l.strip()):
                 if ligne.lower().startswith("f") and "=" in ligne:
                     colonie.nb_fourmis = int(ligne.split("=")[1].strip())
@@ -54,32 +59,26 @@ class Fourmiliere:
             raise ValueError("Nombre de fourmis manquant.")
         return colonie
 
-    def simuler(self, distances):
-        fourmis = {i: self.vestibule for i in range(1, self.nb_fourmis + 1)}
+    def simuler(self, chemin):
+        fourmis = {i: 0 for i in range(1, self.nb_fourmis + 1)}
         etape = 1
         
         while fourmis:
             mouvements = []
-            occupations = {salle: 0 for salle in self.adjacence}
+            occupations = {salle: 0 for salle in chemin}
             
-            for f_id, salle_actuelle in list(fourmis.items()):
-                voisins = [v for v in self.adjacence[salle_actuelle] if distances.get(v, float('inf')) < distances[salle_actuelle]]
-                voisins.sort(key=lambda v: distances[v])
+            for f_id, idx in list(fourmis.items()):
+                salle, suivante = chemin[idx], chemin[idx + 1]
                 
-                a_bouge = False
-                for voisine in voisins:
-                    if occupations[voisine] < self.capacites.get(voisine, 1):
-                        fourmis[f_id] = voisine
-                        occupations[voisine] += 1
-                        mouvements.append(f"f{f_id}-{salle_actuelle}-{voisine}")
-                        a_bouge = True
-                        
-                        if voisine == self.dortoir:
-                            del fourmis[f_id]
-                        break
-                        
-                if not a_bouge:
-                    occupations[salle_actuelle] += 1
+                if occupations[suivante] < self.capacites.get(suivante, 1):
+                    fourmis[f_id] += 1
+                    occupations[suivante] += 1
+                    mouvements.append(f"f{f_id}-{salle}-{suivante}")
+                    
+                    if suivante == self.dortoir:
+                        del fourmis[f_id]
+                else:
+                    occupations[salle] += 1
             
             if mouvements:
                 print(f"+++E{etape}+++")
@@ -90,10 +89,10 @@ class Fourmiliere:
         G = nx.Graph(self.adjacence)
         couleurs = ["lightgreen" if n == self.vestibule else "salmon" if n == self.dortoir else "lightblue" for n in G.nodes()]
         
-        plt.figure(figsize=(15, 11))
+        plt.figure(figsize=(10, 7))
         nx.draw(G, with_labels=True, node_color=couleurs, node_size=1500, font_weight="bold", edge_color="gray")
         plt.title(f"Réseau de la Fourmilière ({self.nb_fourmis} fourmis)")
         plt.show()
 
     def __repr__(self):
-        return f"Fourmiliere(F={self.nb_fourmis}, Salles={len(self.adjacence)}, valide={bool(self.calculer_distances())})"
+        return f"Fourmiliere(F={self.nb_fourmis}, Salles={len(self.adjacence)}, valide={bool(self.trouver_chemin())})"
