@@ -1,11 +1,8 @@
 from ants import Fourmiliere
 
-
-NOM_FICHIER = "../data/salle_d_at-ant.txt"
-
+NOM_FICHIER = "../data/fourmiliere_zero.txt"
 
 def main():
-
     # --- Construction de la fourmilière ---
     try:
         colonie = Fourmiliere.depuis_fichier(NOM_FICHIER)
@@ -21,9 +18,7 @@ def main():
         return
 
     print(f"Nombre de fourmis à déplacer : {colonie.nb_fourmis}")
-    print(f"Nombre de salles              : {colonie.nb_salles()}")
-
-
+    print(f"Nombre de salles              : {len(colonie.adjacence)}")
 
 if __name__ == "__main__":
     main()
