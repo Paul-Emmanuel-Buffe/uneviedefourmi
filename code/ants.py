@@ -1,99 +1,99 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-class Fourmiliere:
-    def __init__(self, vestibule="Sv", dortoir="Sd"):
-        self.adjacence = {}
-        self.capacites = {}
-        self.vestibule = vestibule
-        self.dortoir = dortoir
-        self.nb_fourmis = None
+class AntColony:
+    def __init__(self, start_room="Sv", end_room="Sd"):
+        self.adjacency = {}
+        self.capacities = {}
+        self.start_room = start_room
+        self.end_room = end_room
+        self.num_ants = None
 
-    def init_salle(self, salle):
-        if salle not in self.adjacence:
-            self.adjacence[salle] = set()
-            self.capacites[salle] = float("inf") if salle in (self.vestibule, self.dortoir) else 1
+    def init_room(self, room):
+        if room not in self.adjacency:
+            self.adjacency[room] = set()
+            self.capacities[room] = float("inf") if room in (self.start_room, self.end_room) else 1
 
-    def ajouter_tunnel(self, a, b):
-        self.init_salle(a)
-        self.init_salle(b)
-        self.adjacence[a].add(b)
-        self.adjacence[b].add(a)
+    def add_tunnel(self, a, b):
+        self.init_room(a)
+        self.init_room(b)
+        self.adjacency[a].add(b)
+        self.adjacency[b].add(a)
 
-    def calculer_distances(self):
-        distances = {self.dortoir: 0}
-        a_visiter = [self.dortoir]
+    def calculate_distances(self):
+        distances = {self.end_room: 0}
+        to_visit = [self.end_room]
         
-        while a_visiter:
-            salle = a_visiter.pop(0)
-            for voisin in self.adjacence.get(salle, []):
-                if voisin not in distances:
-                    distances[voisin] = distances[salle] + 1
-                    a_visiter.append(voisin)
+        while to_visit:
+            room = to_visit.pop(0)
+            for neighbor in self.adjacency.get(room, []):
+                if neighbor not in distances:
+                    distances[neighbor] = distances[room] + 1
+                    to_visit.append(neighbor)
                     
-        return distances if self.vestibule in distances else None
+        return distances if self.start_room in distances else None
 
     @classmethod 
-    def depuis_fichier(cls, chemin):
-        colonie = cls()
-        with open(chemin, encoding="utf-8") as fichier:
-            for ligne in (l.strip() for l in fichier if l.strip()):
-                if ligne.lower().startswith("f") and "=" in ligne:
-                    colonie.nb_fourmis = int(ligne.split("=")[1].strip())
-                elif " - " in ligne:
-                    a, b = ligne.split(" - ")
-                    colonie.ajouter_tunnel(a.strip(), b.strip())
-                elif "{" in ligne:
-                    nom, cap = ligne.replace("}", "").split("{")
-                    colonie.init_salle(nom.strip())
-                    colonie.capacites[nom.strip()] = int(cap.strip())
+    def from_file(cls, file_path):
+        colony = cls()
+        with open(file_path, encoding="utf-8") as file:
+            for line in (l.strip() for l in file if l.strip()):
+                if line.lower().startswith("f") and "=" in line:
+                    colony.num_ants = int(line.split("=")[1].strip())
+                elif " - " in line:
+                    a, b = line.split(" - ")
+                    colony.add_tunnel(a.strip(), b.strip())
+                elif "{" in line:
+                    name, cap = line.replace("}", "").split("{")
+                    colony.init_room(name.strip())
+                    colony.capacities[name.strip()] = int(cap.strip())
                 else:
-                    colonie.init_salle(ligne)
+                    colony.init_room(line)
 
-        if not colonie.nb_fourmis:
+        if not colony.num_ants:
             raise ValueError("Nombre de fourmis manquant.")
-        return colonie
+        return colony
 
-    def simuler(self, distances):
-        fourmis = {i: self.vestibule for i in range(1, self.nb_fourmis + 1)}
-        etape = 1
+    def simulate(self, distances):
+        ants = {i: self.start_room for i in range(1, self.num_ants + 1)}
+        step = 1
         
-        while fourmis:
-            mouvements = []
-            occupations = {salle: 0 for salle in self.adjacence}
+        while ants:
+            moves = []
+            occupancy = {room: 0 for room in self.adjacency}
             
-            for f_id, salle_actuelle in list(fourmis.items()):
-                voisins = [v for v in self.adjacence[salle_actuelle] if distances.get(v, float('inf')) < distances[salle_actuelle]]
-                voisins.sort(key=lambda v: distances[v])
+            for ant_id, current_room in list(ants.items()):
+                neighbors = [n for n in self.adjacency[current_room] if distances.get(n, float('inf')) < distances[current_room]]
+                neighbors.sort(key=lambda n: distances[n])
                 
-                a_bouge = False
-                for voisine in voisins:
-                    if occupations[voisine] < self.capacites.get(voisine, 1):
-                        fourmis[f_id] = voisine
-                        occupations[voisine] += 1
-                        mouvements.append(f"f{f_id}-{salle_actuelle}-{voisine}")
-                        a_bouge = True
+                has_moved = False
+                for neighbor in neighbors:
+                    if occupancy[neighbor] < self.capacities.get(neighbor, 1):
+                        ants[ant_id] = neighbor
+                        occupancy[neighbor] += 1
+                        moves.append(f"f{ant_id}-{current_room}-{neighbor}")
+                        has_moved = True
                         
-                        if voisine == self.dortoir:
-                            del fourmis[f_id]
+                        if neighbor == self.end_room:
+                            del ants[ant_id]
                         break
                         
-                if not a_bouge:
-                    occupations[salle_actuelle] += 1
+                if not has_moved:
+                    occupancy[current_room] += 1
             
-            if mouvements:
-                print(f"+++E{etape}+++")
-                print("\n".join(mouvements))
-                etape += 1
+            if moves:
+                print(f"+++E{step}+++")
+                print("\n".join(moves))
+                step += 1
 
-    def afficher_graphe(self):
-        G = nx.Graph(self.adjacence)
-        couleurs = ["lightgreen" if n == self.vestibule else "salmon" if n == self.dortoir else "lightblue" for n in G.nodes()]
+    def display_graph(self):
+        G = nx.Graph(self.adjacency)
+        colors = ["lightgreen" if n == self.start_room else "salmon" if n == self.end_room else "lightblue" for n in G.nodes()]
         
         plt.figure(figsize=(15, 11))
-        nx.draw(G, with_labels=True, node_color=couleurs, node_size=1500, font_weight="bold", edge_color="gray")
-        plt.title(f"Réseau de la Fourmilière ({self.nb_fourmis} fourmis)")
+        nx.draw(G, with_labels=True, node_color=colors, node_size=1500, font_weight="bold", edge_color="gray")
+        plt.title(f"Réseau de la Fourmilière ({self.num_ants} fourmis)")
         plt.show()
 
     def __repr__(self):
-        return f"Fourmiliere(F={self.nb_fourmis}, Salles={len(self.adjacence)}, valide={bool(self.calculer_distances())})"
+        return f"AntColony(Fourmis={self.num_ants}, Salles={len(self.adjacency)}, valide={bool(self.calculate_distances())})"

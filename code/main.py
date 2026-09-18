@@ -1,48 +1,44 @@
 import sys
+from ants import AntColony
 
-
-from ants import Fourmiliere
-# from one_by_one import Fourmiliere
-
-# Permet de glisser un autre fichier texte en argument dans le terminal si besoin
-NOM_FICHIER = sys.argv[1] if len(sys.argv) > 1 else "../data/La_hormiguera_de_la_muerte.txt"
+# Fichier par défaut si aucun n'est fourni dans le terminal
+FILE_NAME = sys.argv[1] if len(sys.argv) > 1 else "../data/fourmiliere_quatre.txt"
 
 def main():
     try:
-        colonie = Fourmiliere.depuis_fichier(NOM_FICHIER)
-    except (FileNotFoundError, ValueError) as erreur:
-        print(f"Erreur de lecture du fichier : {erreur}")
+        colony = AntColony.from_file(FILE_NAME)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"Erreur de lecture du fichier : {error}")
         return
 
-    print(colonie)
-    print(f"Nombre de salles              : {len(colonie.adjacence)}")
+    print(colony)
+    print(f"Nombre de salles              : {len(colony.adjacency)}")
 
-    print("Affichage du graphe en cours (fermez la fenêtre pour lancer la simulation)...")
-    if hasattr(colonie, 'afficher_graphe'):
-        colonie.afficher_graphe()
+    print("Affichage du graphe en cours ...")
+    if hasattr(colony, 'display_graph'):
+        colony.display_graph()
 
     print("\n" + "="*30)
     print("     DÉBUT DE LA SIMULATION")
     print("="*30 + "\n")
 
-    # Détection dynamique de l'algorithme disponible dans le fichier importé
-    if hasattr(colonie, 'calculer_distances'):
-        distances = colonie.calculer_distances()
+    if hasattr(colony, 'calculate_distances'):
+        distances = colony.calculate_distances()
         if not distances:
-            print("Aucun chemin entre le vestibule et le dortoir : fourmilière invalide.")
+            print("fourmilière invalide.")
             return
-        colonie.simuler(distances)
+        colony.simulate(distances)
         
-    elif hasattr(colonie, 'trouver_chemin'):
-        chemin_optimal = colonie.trouver_chemin()
-        if not chemin_optimal:
-            print("Aucun chemin entre le vestibule et le dortoir : fourmilière invalide.")
+    elif hasattr(colony, 'find_path'):
+        best_path = colony.find_path()
+        if not best_path:
+            print("Aucun chemin entre vestibule et  dortoir => fourmilière invalide.")
             return
-        print(f"Chemin emprunté               : {' -> '.join(chemin_optimal)}\n")
-        colonie.simuler(chemin_optimal)
+        print(f"Chemin pris              : {' -> '.join(best_path)}\n")
+        colony.simulate(best_path)
         
     else:
-        print("Erreur : Aucune méthode de parcours compatible trouvée dans la classe importée.")
+        print("Erreur : Aucune méthode de parcours compatible trouvée dans la classe.")
 
 if __name__ == "__main__":
     main()
