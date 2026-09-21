@@ -11,64 +11,97 @@ class AntColony:
 
     def init_room(self, room):
         if room not in self.adjacency:
-            self.adjacency[room] = set()
-            self.capacities[room] = float("inf") if room in (self.start_room, self.end_room) else 1
+            self.adjacency[room] = []
+            
+            if room == self.start_room or room == self.end_room:
+                self.capacities[room] = float("inf")
+            else:
+                self.capacities[room] = 1
 
     def add_tunnel(self, a, b):
         self.init_room(a)
         self.init_room(b)
-        self.adjacency[a].add(b)
-        self.adjacency[b].add(a)
+        self.adjacency[a].append(b)
+        self.adjacency[b].append(a)
 
     def calculate_distances(self):
         distances = {self.end_room: 0}
-        to_visit = [self.end_room]
+        to_visit = [self.end_room] 
         
-        while to_visit:
+        while len(to_visit) > 0:
             room = to_visit.pop(0)
+            
             for neighbor in self.adjacency.get(room, []):
                 if neighbor not in distances:
                     distances[neighbor] = distances[room] + 1
                     to_visit.append(neighbor)
                     
-        return distances if self.start_room in distances else None
+        if self.start_room in distances:
+            return distances
+        else:
+            return None
 
     @classmethod 
     def from_file(cls, file_path):
         colony = cls()
-        with open(file_path, encoding="utf-8") as file:
-            for line in (l.strip() for l in file if l.strip()):
-                if line.lower().startswith("f") and "=" in line:
-                    colony.num_ants = int(line.split("=")[1].strip())
-                elif " - " in line:
-                    a, b = line.split(" - ")
-                    colony.add_tunnel(a.strip(), b.strip())
-                elif "{" in line:
-                    name, cap = line.replace("}", "").split("{")
-                    colony.init_room(name.strip())
-                    colony.capacities[name.strip()] = int(cap.strip())
-                else:
-                    colony.init_room(line)
+        
+        with open(file_path, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+            
+        for line in lines:
+            line = line.strip()
+            if line == "":
+                continue 
+                
+            if line.lower().startswith("f") and "=" in line:
+                parts = line.split("=")
+                colony.num_ants = int(parts[1].strip())
+                
+            elif " - " in line:
+                parts = line.split(" - ")
+                colony.add_tunnel(parts[0].strip(), parts[1].strip())
+                
+            elif "{" in line:
+                parts = line.split("{")
+                name = parts[0].strip()
+                cap = parts[1].replace("}", "").strip()
+                colony.init_room(name)
+                colony.capacities[name] = int(cap)
+                
+            else:
+                colony.init_room(line)
 
-        if not colony.num_ants:
+        if colony.num_ants is None:
             raise ValueError("Nombre de fourmis manquant.")
+            
         return colony
 
     def simulate(self, distances):
-        ants = {i: self.start_room for i in range(1, self.num_ants + 1)}
+        ants = {}
+        for i in range(1, self.num_ants + 1):
+            ants[i] = self.start_room
+            
         step = 1
         
-        while ants:
+        while len(ants) > 0:
             moves = []
-            occupancy = {room: 0 for room in self.adjacency}
+            occupancy = {}
+            for room in self.adjacency:
+                occupancy[room] = 0
             
             for ant_id, current_room in list(ants.items()):
-                neighbors = [n for n in self.adjacency[current_room] if distances.get(n, float('inf')) < distances[current_room]]
+                neighbors = []
+                for n in self.adjacency[current_room]:
+                    if n in distances and distances[n] < distances.get(current_room, float('inf')):
+                        neighbors.append(n)
+                        
                 neighbors.sort(key=lambda n: distances[n])
                 
                 has_moved = False
                 for neighbor in neighbors:
-                    if occupancy[neighbor] < self.capacities.get(neighbor, 1):
+                    cap_max = self.capacities.get(neighbor, 1)
+                    
+                    if occupancy[neighbor] < cap_max:
                         ants[ant_id] = neighbor
                         occupancy[neighbor] += 1
                         moves.append(f"f{ant_id}-{current_room}-{neighbor}")
@@ -78,13 +111,16 @@ class AntColony:
                             del ants[ant_id]
                         break
                         
-                if not has_moved:
+                if has_moved == False:
                     occupancy[current_room] += 1
             
-            if moves:
+            if len(moves) > 0:
                 print(f"+++E{step}+++")
-                print("\n".join(moves))
+                for move in moves:
+                    print(move)
                 step += 1
+
+
 
     def display_graph(self):
         G = nx.Graph(self.adjacency)
@@ -96,4 +132,4 @@ class AntColony:
         plt.show()
 
     def __repr__(self):
-        return f"AntColony(Fourmis={self.num_ants}, Salles={len(self.adjacency)}, valide={bool(self.calculate_distances())})"
+        return f"AntColony(Fourmis={self.num_ants}, Salles={len(self.adjacency)})"
