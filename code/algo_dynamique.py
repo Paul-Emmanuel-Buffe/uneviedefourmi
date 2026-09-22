@@ -1,3 +1,5 @@
+"""Dynamic greedy routing based on BFS distances."""
+
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -10,6 +12,7 @@ class AntColony:
         self.num_ants = None
 
     def init_room(self, room):
+        """Initialize a room with default or infinite capacity."""
         if room not in self.adjacency:
             self.adjacency[room] = []
             
@@ -19,12 +22,14 @@ class AntColony:
                 self.capacities[room] = 1
 
     def add_tunnel(self, a, b):
+        """Connect two rooms."""
         self.init_room(a)
         self.init_room(b)
         self.adjacency[a].append(b)
         self.adjacency[b].append(a)
 
     def calculate_distances(self):
+        """Calculate BFS distances from all nodes to the end room."""
         distances = {self.end_room: 0}
         to_visit = [self.end_room] 
         
@@ -43,6 +48,7 @@ class AntColony:
 
     @classmethod 
     def from_file(cls, file_path):
+        """Parse colony layout from a text file."""
         colony = cls()
         
         with open(file_path, "r", encoding="utf-8") as file:
@@ -72,11 +78,12 @@ class AntColony:
                 colony.init_room(line)
 
         if colony.num_ants is None:
-            raise ValueError("Nombre de fourmis manquant.")
+            raise ValueError("Missing ant count (e.g., F=10).")
             
         return colony
 
     def simulate(self, distances):
+        """Simulate ant movements using greedy distance evaluation."""
         ants = {}
         for i in range(1, self.num_ants + 1):
             ants[i] = self.start_room
@@ -85,16 +92,17 @@ class AntColony:
         
         while len(ants) > 0:
             moves = []
-            occupancy = {}
-            for room in self.adjacency:
-                occupancy[room] = 0
+            occupancy = {room: 0 for room in self.adjacency}
             
+            # Iterate over a frozen copy of ants
             for ant_id, current_room in list(ants.items()):
                 neighbors = []
                 for n in self.adjacency[current_room]:
+                    # Keep only neighbors strictly closer to the exit
                     if n in distances and distances[n] < distances.get(current_room, float('inf')):
                         neighbors.append(n)
                         
+                # Prioritize paths with the shortest global distance
                 neighbors.sort(key=lambda n: distances[n])
                 
                 has_moved = False
@@ -111,7 +119,7 @@ class AntColony:
                             del ants[ant_id]
                         break
                         
-                if has_moved == False:
+                if not has_moved:
                     occupancy[current_room] += 1
             
             if len(moves) > 0:
@@ -120,16 +128,38 @@ class AntColony:
                     print(move)
                 step += 1
 
-
-
     def display_graph(self):
+        """Visualize the graph topology."""
         G = nx.Graph(self.adjacency)
         colors = ["lightgreen" if n == self.start_room else "salmon" if n == self.end_room else "lightblue" for n in G.nodes()]
         
         plt.figure(figsize=(15, 11))
         nx.draw(G, with_labels=True, node_color=colors, node_size=1500, font_weight="bold", edge_color="gray")
-        plt.title(f"Réseau de la Fourmilière ({self.num_ants} fourmis)")
+        plt.title(f"Ant Colony Network ({self.num_ants} ants)")
         plt.show()
 
     def __repr__(self):
-        return f"AntColony(Fourmis={self.num_ants}, Salles={len(self.adjacency)})"
+        return f"AntColony(Ants={self.num_ants}, Rooms={len(self.adjacency)})"
+
+if __name__ == "__main__":
+    # Standalone execution entry point
+    FILE_NAME = "data/salle_d_at-ant.txt"
+    try:
+        colony = AntColony.from_file(FILE_NAME)
+    except (FileNotFoundError, ValueError) as error:
+        print(f"File read error: {error}")
+        exit()
+
+    print(colony)
+    print("Displaying graph...")
+    colony.display_graph()
+
+    print("\n" + "="*25)
+    print("ANT SIMULATION (DYNAMIC)")
+    print("="*25 + "\n")
+
+    dist = colony.calculate_distances()
+    if not dist:
+        print("Invalid colony: No path to exit.")
+    else:
+        colony.simulate(dist)
