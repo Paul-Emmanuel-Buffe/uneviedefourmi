@@ -62,7 +62,7 @@ The path selection is also **greedy**, so it does not guarantee the mathematical
 
 ---
 
-## 🐜 Ant Simulation
+## Ant Simulation
 
 Once the paths have been selected, the ants are assigned to them.
 
