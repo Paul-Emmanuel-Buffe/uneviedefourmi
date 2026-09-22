@@ -1,5 +1,3 @@
-Voici le fichier README final, nettoyé de toute annotation et structuré pour un standard professionnel.
-
 ```markdown
 # Ant Colony Routing Optimization
 
